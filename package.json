@@ -1,16 +1,19 @@
 {
   "name": "NaiveBayesClassification",
-  "repository" : {
-	"type":"git",
-	"url":"https://github.com/jainsourabh2/naivebaiyespoc.git"
-	},
-  "description" : "A simple poc to detect if a person is a salaried person or businessman",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jainsourabh2/naivebaiyespoc.git"
+  },
+  "description": "A simple poc to detect if a person is a salaried person or businessman",
   "main": "bayesclassifier.js",
   "dependencies": {
     "natural": "^0.2.1",
     "node-ner": "0.0.3",
-    "sentence-tokenizer": "0.0.7"
+    "sanitize-html": "^1.11.3",
+    "sentence-tokenizer": "0.0.7",
+    "trim": "0.0.1",
+    "value-replace": "^1.0.0"
   },
-  "private" : true,	
-  "license" : "LicenseRef-LICENSE"
+  "private": true,
+  "license": "LicenseRef-LICENSE"
 }

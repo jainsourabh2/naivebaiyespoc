@@ -1,3 +1,5 @@
+module.exports.statement='<SPAN lang=""><P dir=ltr>Group name:florence pereira</P>&nbsp;&amp;<P>His<BR> is self employeed<BR> in an &amp;IT company</P>.'
+
 module.exports.trainingModel=[
 {category:"salaried",statement:"Customer works in a company"},
 {category:"salaried",statement:"Customer is employed in a company"},
@@ -26,6 +28,7 @@ module.exports.trainingModel=[
 {category:"businessman",statement:"Customer runs a family business"},
 {category:"businessman",statement:"Customer owns a family business"},
 {category:"businessman",statement:"Customer is a partner"},
+{category:"businessman",statement:"Customer has an office in location."},
 {category:"businessman",statement:"He owns a shop"},
 {category:"businessman",statement:"He is a businessman"},
 {category:"businessman",statement:"His shop is in a location"},
@@ -35,7 +38,8 @@ module.exports.trainingModel=[
 {category:"businessman",statement:"He owns a factory"},
 {category:"businessman",statement:"He runs a family business"},
 {category:"businessman",statement:"He owns a family business"},
-{category:"businessman",statement:"He is a partner"}
+{category:"businessman",statement:"He is a partner"},
+{category:"businessman",statement:"He has an office in location."}
 //{category:"SE Professional",statement:"He is a government officer"}
 ];
 
@@ -63,7 +67,9 @@ module.exports.salaried2words=[
 {key1:"employed",key2:"currently"},
 {key1:"job",key2:"salary"},
 {key1:"salary",key2:"individual"},
-{key1:"salaried",key2:"individual"}
+{key1:"salaried",key2:"individual"},
+{key1:"working",key2:"as"},
+{key1:"working",key2:"with"}
 ];
 
 module.exports.businessman2words=[
@@ -71,9 +77,10 @@ module.exports.businessman2words=[
 {key1:"turnover",key2:"annual"},
 {key1:"tycoon",key2:"business"},
 {key1:"crores",key2:"turnover"},
-{key1:"self",key2:"employeed"},
+{key1:"Self",key2:"employeed"},
 {key1:"owns",key2:"business"},
 {key1:"family",key2:"business"},
+{key1:"has",key2:"office"}
 ];
 
 
