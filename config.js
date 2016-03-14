@@ -1,4 +1,4 @@
-module.exports.statement='&nbsp; <TABLE cellSpacing=0 cols=1 rules=groups border=1 frame=void> <COLGROUP> <COL width=493></COLGROUP> <TBODY><TR><TD Aalign=top align=left width=493 height=697>He is employeed in Jolly Rayon. While servicing we shld have explored possibilitty of ixing a jt call with pbg &amp; hsl rm to sign up for hsl rm as well improve trading volumes 16/12/08 <BR> Sign up for ISA, WAS 16/12/08 <BR>Position gold bar 16/12/08 <BR>Probe re. AL/HL &amp; Various fx pdts offered by the bank.</TD></TR></TBODY></TABLE>';
+module.exports.statement='&nbsp; <TABLE cellSpacing=0 cols=1 rules=groups border=1 frame=void> <COLGROUP> <COL width=493></COLGROUP> <TBODY><TR><TD Aalign=top align=left width=493 height=697>He owns Jolly Rayon and stays in Thane. While servicing we shld have explored possibilitty of fixing a jt call with pbg &amp; hsl rm to sign up for hsl rm as well improve trading volumes 16/12/08 <BR> Sign up for ISA, WAS 16/12/08 <BR>Position gold bar 16/12/08 <BR>Probe re. AL/HL &amp; Various fx pdts offered by the bank.</TD></TR></TBODY></TABLE>';
 
 module.exports.filename='sample1.txt';
 
@@ -65,7 +65,8 @@ module.exports.businessman=[
 {key:"self-employeed"},
 {key:"factory"},
 {key:"partner"},
-{key:"owner"}
+{key:"owner"},
+{key:"owns"}
 ];
 
 module.exports.salaried2words=[

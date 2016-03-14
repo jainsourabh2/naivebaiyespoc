@@ -12,6 +12,8 @@ var ner 			= new node_ner({
 						install_path:	''
 						});
 var tokens;
+var date = new Date();
+console.log("Process Start Time : " + date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds());
 var salCount=0;
 var busCount=0;
 var sal2Count=false;
@@ -231,6 +233,8 @@ for(var i=0;i<sent.length;i++)
 					console.log("Extracted Name Entities (Stanford NER) : " + JSON.stringify(entities));
 					console.log("=======================================================================================");
 					console.log("=======================================================================================");
+					var date1 = new Date();
+					console.log("Process End Time : " + date1.getDate() + "/" + (date1.getMonth()+1) + "/" + date1.getFullYear() + " " + date1.getHours() + ":" + date1.getMinutes() + ":" + date1.getSeconds());
 				})		
 			})
 			callback(null, 'Processed File');
