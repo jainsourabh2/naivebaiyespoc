@@ -1,49 +1,51 @@
-var Tokenizer 	= require('sentence-tokenizer');
-var tokenizer	= new Tokenizer('Chuck');
-var natural	= require('natural'),
-  classifier 	= new natural.BayesClassifier(),
-  wordtokenizer	= new natural.WordTokenizer();
-var config 	= require('./config.js');
-var sanitizeHtml = require('sanitize-html');
+var Tokenizer 		= require('sentence-tokenizer');
+var tokenizer		= new Tokenizer('Chuck');
+var natural			= require('natural'),
+  classifier 		= new natural.BayesClassifier(),
+  wordtokenizer		= new natural.WordTokenizer();
+var config 			= require('./config.js');
+var sanitizeHtml 	= require('sanitize-html');
+var node_ner 		= require('node-ner');
+var fs 				= require('fs');
+var async			= require('async');
+var ner 			= new node_ner({
+						install_path:	''
+						});
 var tokens;
 var salCount=0;
 var busCount=0;
 var sal2Count=false;
 var bus2Count=false;
+var confPercentage=0;
+var derClass;
+var classBusinessman = config.classBusinessman;
+var classSalaried = config.classSalaried;
+var bayesclassifier;
 
-//console.log(config.trainingModel.category[0]);
 var trainingModel = config.trainingModel;
 var salaried = config.salaried;
 var businessman = config.businessman;
 var salaried2words = config.salaried2words;
 var businessman2words = config.businessman2words;
 
-//console.log(salaried.length);
-//console.log(businessman.length);
-//console.log(trainingModel.length);
 //Adding Documents to the New Model.
 for(var i=0;i<trainingModel.length;i++)
 {
-//console.log(trainingModel[i].category);
-//console.log(trainingModel[i].statement);
 	classifier.addDocument(trainingModel[i].statement, trainingModel[i].category);
 }
 
 //Train the classifier
 classifier.train();
 
-//tokenizer.setEntry("<BR> He runs a garment factory. His annual salary is 5 crores. He has a son and a daughter. He has an account with ICICI. He is retired RBI officer. He is a partner with milan supari");
-
-//tokenizer.setEntry("&nbsp;Family Size: 2,Antointte nagpal &amp; her son...");
-
 //Data Cleansing for the HTML tags	
 	input = sanitizeHtml(config.statement, {
 		allowedTags: [],
 		allowedAttributes: []
 	});
+	
+	input = input.replace(/&amp;/gi,'&').trim();
 
 tokenizer.setEntry(input);
-//console.log(Ngrams.bigrams("How are you?"));
 
 //Tokenizing the sentence from the paragraph.
 var sent = tokenizer.getSentences();
@@ -55,14 +57,14 @@ for(var i=0;i<sent.length;i++)
 	// Data cleansing.
 	//sent[i] = sent[i].replace(/<BR>/gi,'').trim();
 	//sent[i] = sent[i].replace(/&nbsp/gi,'').trim();
-	sent[i] = sent[i].replace(/&amp;/gi,'').trim();
+	//sent[i] = sent[i].replace(/&amp;/gi,'&').trim();
 	
 	//Tokenizing the words from the sentence
 	tokens = wordtokenizer.tokenize(sent[i]);
-	//console.log(tokens.length);
+
 	//Initializing the counts to 0
-	salCount = 0;
-	busCount = 0;
+	//salCount = 0;
+	//busCount = 0;
 	
 	// Looping through the generated words.
 	for(j=0;j<tokens.length;j++){
@@ -72,7 +74,6 @@ for(var i=0;i<sent.length;i++)
 			var JWD = natural.JaroWinklerDistance(tokens[j].toLowerCase(),salaried[s].key.toLowerCase());
 			// Checking if the word matches salaried dictionary or if the string distance id greater than 0.8.
 			if(tokens[j].toLowerCase()==salaried[s].key.toLowerCase() || (parseFloat(JWD) > 0.9)){
-				//console.log(salCount);
 				//Incrementing the counter.
 				salCount = salCount + 1;
 				}
@@ -90,7 +91,7 @@ for(var i=0;i<sent.length;i++)
 		}
 	
 		//Spitting the results.
-		console.log(sent[i] +" - "+ classifier.classify(sent[i]) + " - " + tokens[j] + " - " +salCount + " - " + busCount);
+		//console.log(sent[i] +" - "+ classifier.classify(sent[i]) + " - " + tokens[j] + " - " +salCount + " - " + busCount);
 	}
 
 	//Tokenizing the words from the sentence
@@ -124,12 +125,121 @@ for(var i=0;i<sent.length;i++)
 		}	
 	}
 	
-	console.log(sal2Count);
-	console.log(bus2Count);
-	console.log(salCount);
-	console.log(busCount);
-	var bayesclassifier = console.log(classifier.classify(config.statement));
+	//console.log(sal2Count);
+	//console.log(bus2Count);
+	//console.log(salCount);
+	//console.log(busCount);
+	//console.log(sent[i]);
+	//console.log(classifier.classify(sent[i]));
+	//console.log(config.statement);
+	//console.log(classifier.classify(config.statement));	
 	
-	console.log(input);
+	//console.log(input);	
 	
 }
+
+	/*	
+
+	First check th appropriate baiyesclassifier
+	=> Apply the derived Class	
+		First check (double word for true and single word for >0)
+		=> Apply the derived category with 90 confidence percentage.
+			Else
+			Check double word for true and single word =0
+			=> Apply the derived category with 70 confidence percentage.
+				Else
+				Check double word for false  and single word > 0	
+				=> Apply the derived category with 40 confidence percentage.
+					Else
+					Check double word for false  and single word = 0	
+					=> Apply the derived category with 0 confidence percentage.
+				
+	*/
+	//Deriving the Confidence Percentage and Class.
+	//---------------------------------------------
+	bayesclassifier = classifier.classify(config.statement);
+	if(bayesclassifier.toLowerCase() == classBusinessman.toLowerCase()){
+		derClass = classBusinessman; 
+		if(bus2Count == true && parseInt(busCount) > 0){
+			confPercentage = config.confidencePercentage.ninety; 
+		} else if (bus2Count == true && parseInt(busCount) == 0) {
+			confPercentage = config.confidencePercentage.sixty;
+		} else if (bus2Count == false && parseInt(busCount) > 0)  {
+			confPercentage = config.confidencePercentage.thirty;
+		} else if (bus2Count == false && parseInt(busCount) == 0 && sal2Count == false && parseInt(salCount) == 0 ) {
+			confPercentage = config.confidencePercentage.zero;
+		} else if (sal2Count == true && parseInt(salCount) > 0) {
+			confPercentage = config.confidencePercentage.seventy;
+			derClass = classSalaried;
+		} else if (sal2Count == true && parseInt(salCount) == 0) {
+			confPercentage = config.confidencePercentage.forty;
+			derClass = classSalaried;
+		} else if (sal2Count == false && parseInt(salCount) > 0)  {
+			confPercentage = config.confidencePercentage.twenty;
+			derClass = classSalaried;
+		} else if (sal2Count == false && parseInt(salCount) == 0) {
+			confPercentage = config.confidencePercentage.zero;
+			derClass = classSalaried;
+		}
+	} else if (bayesclassifier.toLowerCase() == classSalaried.toLowerCase()) {
+		derClass = classSalaried;
+		if(sal2Count==true && parseInt(salCount) > 0){ 
+			confPercentage = config.confidencePercentage.ninety; 
+		} else if (sal2Count==true && parseInt(salCount) == 0) {
+			confPercentage = config.confidencePercentage.sixty;
+		} else if (sal2Count==false && parseInt(salCount) > 0)  {
+			confPercentage = config.confidencePercentage.thirty;
+		} else if (sal2Count==false && parseInt(salCount) == 0 && bus2Count ==false && parseInt(busCount) == 0 ) {
+			confPercentage = config.confidencePercentage.zero;
+		} else if (bus2Count == true && parseInt(busCount) > 0) {
+			confPercentage = config.confidencePercentage.seventy;
+			derClass = classBusinessman;
+		} else if (bus2Count == true && parseInt(busCount) == 0) {
+			confPercentage = config.confidencePercentage.forty;
+			derClass = classBusinessman;
+		} else if (bus2Count == false && parseInt(busCount) > 0)  {
+			confPercentage = config.confidencePercentage.twenty;
+			derClass = classBusinessman;
+		} else if (bus2Count == false && parseInt(busCount) == 0) {
+			confPercentage = config.confidencePercentage.zero;
+			derClass = classBusinessman;
+		}		
+	}
+	
+	async.waterfall([
+		function(callback){
+			fs.writeFile(config.filename, input, function(err) {
+				if(err) {
+					return console.log(err);
+				}
+			
+				//console.log("The file was saved!");
+
+				ner.fromFile(config.filename, function(entities) {
+					//console.log(entities);
+					console.log("=======================================================================================");
+					console.log("Results");
+					console.log("=======================================================================================");
+					console.log("Input : " + input);
+					console.log("");
+					console.log("Baiyes Classifier : " + bayesclassifier);
+					console.log("");
+					console.log("Derived Classifier : " + derClass);
+					console.log("");
+					console.log("Confidence Percentage : " + confPercentage );
+					console.log("");
+					console.log("Extracted Name Entities (Stanford NER) : " + JSON.stringify(entities));
+					console.log("=======================================================================================");
+					console.log("=======================================================================================");
+				})		
+			})
+			callback(null, 'Processed File');
+		},
+		function(arg2,callback){
+			//fs.unlink(config.filename)
+			callback(null, 'Removed File');
+		}		
+	],function (err, result) {
+		// result now equals 'done'    
+		}
+	); 
