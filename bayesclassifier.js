@@ -1,3 +1,5 @@
+var _				= require('underscore');
+var sql				= require('mssql');
 var Tokenizer 		= require('sentence-tokenizer');
 var tokenizer		= new Tokenizer('Chuck');
 var natural			= require('natural'),
@@ -9,43 +11,59 @@ var node_ner 		= require('node-ner');
 var fs 				= require('fs');
 var async			= require('async');
 var ner 			= new node_ner({
-						install_path:	''
+						classifier:	config.classifier
 						});
-var tokens;
+
 var date = new Date();
 console.log("Process Start Time : " + date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear() + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds());
-var salCount=0;
-var busCount=0;
-var sal2Count=false;
-var bus2Count=false;
-var confPercentage=0;
-var derClass;
-var classBusinessman = config.classBusinessman;
-var classSalaried = config.classSalaried;
-var bayesclassifier;
 
-var trainingModel = config.trainingModel;
-var salaried = config.salaried;
-var businessman = config.businessman;
-var salaried2words = config.salaried2words;
-var businessman2words = config.businessman2words;
+//Declare Variables
+var salCount=0,
+	busCount=0,
+	sal2Count=false,
+	bus2Count=false,
+	confPercentage=0,
+	derClass,
+	classBusinessman 	= config.classBusinessman,
+	classSalaried 		= config.classSalaried,
+	classNone			= config.classNone,
+	bayesclassifier,
+	tokens,
+	outputjson;
+
+//Initialize Collections
+var trainingModel = config.trainingModel,
+	salaried = config.salaried,
+	businessman = config.businessman,
+	salaried2words = config.salaried2words,
+	businessman2words = config.businessman2words;
 
 //Adding Documents to the New Model.
-for(var i=0;i<trainingModel.length;i++)
-{
-	classifier.addDocument(trainingModel[i].statement, trainingModel[i].category);
-}
+_.map(trainingModel,function(modeldata){
+	classifier.addDocument(modeldata.statement,modeldata.category);
+});
 
 //Train the classifier
 classifier.train();
-
-//Data Cleansing for the HTML tags	
-	input = sanitizeHtml(config.statement, {
-		allowedTags: [],
-		allowedAttributes: []
-	});
 	
-	input = input.replace(/&amp;/gi,'&').trim();
+	
+sql.connect("mssql://EDW:default@123@10.226.210.147/CRMnext_Supervisory").then(function() {
+
+	new sql.Request().query('select top 100 NoteItemID,Details from dbo.Notes').then(function(recordset) {
+		console.dir(recordset);
+	}).catch(function(err) {
+		// ... query error checks 
+	});
+
+});
+	
+//Data Cleansing for the HTML tags	
+input = sanitizeHtml(config.statement, {
+	allowedTags: [],
+	allowedAttributes: []
+});
+
+input = input.replace(/&amp;/gi,'&').trim();
 
 tokenizer.setEntry(input);
 
@@ -55,19 +73,8 @@ var sent = tokenizer.getSentences();
 // Looping through all the formed sentences.
 for(var i=0;i<sent.length;i++)
 {
-	//console.log((sent[i]));
-	// Data cleansing.
-	//sent[i] = sent[i].replace(/<BR>/gi,'').trim();
-	//sent[i] = sent[i].replace(/&nbsp/gi,'').trim();
-	//sent[i] = sent[i].replace(/&amp;/gi,'&').trim();
-	
 	//Tokenizing the words from the sentence
 	tokens = wordtokenizer.tokenize(sent[i]);
-
-	//Initializing the counts to 0
-	//salCount = 0;
-	//busCount = 0;
-	
 	// Looping through the generated words.
 	for(j=0;j<tokens.length;j++){
 		//Looping through to match the word with the salaried keywords.
@@ -125,38 +132,9 @@ for(var i=0;i<sent.length;i++)
 		} else{
 			//console.log("2 Words not Present in Business2Words");
 		}	
-	}
-	
-	//console.log(sal2Count);
-	//console.log(bus2Count);
-	//console.log(salCount);
-	//console.log(busCount);
-	//console.log(sent[i]);
-	//console.log(classifier.classify(sent[i]));
-	//console.log(config.statement);
-	//console.log(classifier.classify(config.statement));	
-	
-	//console.log(input);	
-	
+	}	
 }
 
-	/*	
-
-	First check th appropriate baiyesclassifier
-	=> Apply the derived Class	
-		First check (double word for true and single word for >0)
-		=> Apply the derived category with 90 confidence percentage.
-			Else
-			Check double word for true and single word =0
-			=> Apply the derived category with 70 confidence percentage.
-				Else
-				Check double word for false  and single word > 0	
-				=> Apply the derived category with 40 confidence percentage.
-					Else
-					Check double word for false  and single word = 0	
-					=> Apply the derived category with 0 confidence percentage.
-				
-	*/
 	//Deriving the Confidence Percentage and Class.
 	//---------------------------------------------
 	bayesclassifier = classifier.classify(config.statement);
@@ -170,6 +148,7 @@ for(var i=0;i<sent.length;i++)
 			confPercentage = config.confidencePercentage.thirty;
 		} else if (bus2Count == false && parseInt(busCount) == 0 && sal2Count == false && parseInt(salCount) == 0 ) {
 			confPercentage = config.confidencePercentage.zero;
+			derClass = classNone;
 		} else if (sal2Count == true && parseInt(salCount) > 0) {
 			confPercentage = config.confidencePercentage.seventy;
 			derClass = classSalaried;
@@ -181,7 +160,7 @@ for(var i=0;i<sent.length;i++)
 			derClass = classSalaried;
 		} else if (sal2Count == false && parseInt(salCount) == 0) {
 			confPercentage = config.confidencePercentage.zero;
-			derClass = classSalaried;
+			derClass = classNone;
 		}
 	} else if (bayesclassifier.toLowerCase() == classSalaried.toLowerCase()) {
 		derClass = classSalaried;
@@ -193,6 +172,7 @@ for(var i=0;i<sent.length;i++)
 			confPercentage = config.confidencePercentage.thirty;
 		} else if (sal2Count==false && parseInt(salCount) == 0 && bus2Count ==false && parseInt(busCount) == 0 ) {
 			confPercentage = config.confidencePercentage.zero;
+			derClass = classNone;
 		} else if (bus2Count == true && parseInt(busCount) > 0) {
 			confPercentage = config.confidencePercentage.seventy;
 			derClass = classBusinessman;
@@ -204,7 +184,7 @@ for(var i=0;i<sent.length;i++)
 			derClass = classBusinessman;
 		} else if (bus2Count == false && parseInt(busCount) == 0) {
 			confPercentage = config.confidencePercentage.zero;
-			derClass = classBusinessman;
+			derClass = classNone
 		}		
 	}
 	
@@ -233,9 +213,23 @@ for(var i=0;i<sent.length;i++)
 					console.log("Extracted Name Entities (Stanford NER) : " + JSON.stringify(entities));
 					console.log("=======================================================================================");
 					console.log("=======================================================================================");
+					
+					fs.unlink(config.filename);
+					
+					outputjson = "{\"input\":\"" + input + "\",\"BC\":\"" + bayesclassifier + "\",\"DC\":\"" + derClass + "\",\"CP\":\"" + confPercentage + "\",\"NER\":" + JSON.stringify(entities) + "}\n";
+					
+					//console.log(outputjson);
+					
+					fs.appendFile(config.output, outputjson, function(err) {
+						if(err) {
+							return console.log(err);
+						}
+						
 					var date1 = new Date();
 					console.log("Process End Time : " + date1.getDate() + "/" + (date1.getMonth()+1) + "/" + date1.getFullYear() + " " + date1.getHours() + ":" + date1.getMinutes() + ":" + date1.getSeconds());
-				})		
+
+					});	
+				})				
 			})
 			callback(null, 'Processed File');
 		},
